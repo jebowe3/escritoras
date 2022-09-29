@@ -8,6 +8,9 @@
   <title>Escritoras en Iowa</title>
   <!-- Add a link to the Leaflet CSS library so you can reference it for styling your map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
   <!-- All the CSS code goes inside the style tags below -->
   <style>
     /* style the body */
@@ -15,6 +18,24 @@
       margin: 0px;
       height: 100%;
       width: 100%;
+    }
+
+    /* style the header */
+    header {
+      position: absolute;
+      z-index: 800;
+      top: 0px;
+      right: 0px;
+      height: 60px;
+      width: 300px;
+      background-color: rgba(255,255,255,0.5);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'Roboto', sans-serif;
+      color: gray;
+      text-align: center;
     }
 
     /* style the map */
@@ -71,6 +92,10 @@
 </head>
 
 <body>
+  <!-- the header -->
+  <header>
+    <h1>Escritoras en Iowa</h1>
+  </header>
   <!-- the map -->
   <div id="map"></div>
   <!-- ui slider -->
