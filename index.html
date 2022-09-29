@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <!-- Give the page a title -->
+  <title>Escritoras en Iowa</title>
+  <!-- Add a link to the Leaflet CSS library so you can reference it for styling your map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <!-- All the CSS code goes inside the style tags below -->
+  <style>
+    /* style the body */
+    body {
+      margin: 0px;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* style the map */
+    #map {
+      position: absolute;
+      width: 100%;
+      top: 0px;
+      bottom: 0;
+    }
+
+    /* style the slider-control div */
+    #slider-control {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      width: 30%;
+      height: 25px;
+      z-index: 700;
+    }
+
+    /* Set time slider styles */
+    #slider {
+      position: absolute;
+      height: 100%;
+      bottom: 0px;
+      left: 125px;
+      z-index: 1000;
+      background-color: #FFFFFF;
+      border-radius: 3px;
+      box-shadow: 0px 0px 0px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Set temporal legend styles */
+    #temporal {
+      position: absolute;
+      height: 100%;
+      bottom: 0px;
+      width: 86px;
+      z-index: 1000;
+      background-color: #FFFFFF;
+      border-radius: 3px;
+      box-shadow: 0px 0px 0px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Set the styles for the text span in the temporal legend */
+    #temporal span {
+      font-family: 'Montserrat', sans-serif;
+      position: absolute;
+      font-size: 13px;
+      bottom: 4px;
+      left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- the map -->
+  <div id="map"></div>
+  <!-- ui slider -->
+  <div id="slider-control">
+    <div id="slider" class="leaflet-control">
+      <!-- Use the first and last year of the time data as the min and max. Set the initial value as the first year. Set the steps at one year. -->
+      <input type="range" min="1967" max="2018" value="2018" step="1" class="slider" />
+    </div>
+    <!-- temporal legend -->
+    <div id='temporal'>
+      <h5 class='txt-bold'><span></span></h5>
+    </div>
+  </div>
+  <!-- Add a link to the Leaflet JavaScript library so you can reference it for building your map -->
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+  <!--d3-fetch parsing module for requesting files into web application-->
+  <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+  <!-- Add a link to the jQuery JavaScript library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <!-- All JavaScript goes inside the script tags below -->
+  <script>
+    // define map options
+    const mapOptions = {
+      center: [0, -70], // center the map
+      zoom: 3, // set the initial zoom
+    };
+
+    // define the map with the options above
+    const map = L.map("map", mapOptions);
+
+    // add a base map to the map
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    	subdomains: 'abcd',
+    	maxZoom: 20
+    }).addTo(map);
+
+    // define a function to color the countries
+    function getColor(d) {
+      return d >= 16  ? 'rgba(107,0,0)' :
+             d >= 11  ? 'rgba(173,83,19)' :
+             d >= 6  ? 'rgba(242,167,46)' :
+             d >= 3  ? 'rgba(250,209,85)':
+             d >= 0  ? 'rgba(255,255,128)':
+                       'rgba(0,0,0,0.0)';
+    };
+
+    // define the star icon
+    const starIcon = L.icon({
+        iconUrl: 'icons/star.png',
+        iconSize:     [30, 30], // size of the icon
+        iconAnchor:   [15, 15], // point of the icon which will correspond to marker's location
+        //popupAnchor:  [0, 0] // point from which the popup should open relative to the iconAnchor
+    });
+
+    // place the star icon over Iowa City
+    const icMarker = L.marker([41.66, -91.53], {icon: starIcon}).addTo(map);
+
+    icMarker.bindTooltip("Iowa City");
+
+    // use D3 fetch to request data with async requests
+    const escritorasData = d3.json('data/escritoras_1.geojson');
+
+    // use Promise to wait until data is all loaded
+    Promise.all([escritorasData]).then(drawMap);
+
+    // function is called when Promise is fulfilled and data is ready
+    function drawMap(data) {
+
+      // pull out data array and define
+      const escritoras = data[0];
+
+      // define a layer with the data array
+      const escritorasLayer = L.geoJson(escritoras, {
+
+        // style each feature
+        style: function(feature) {
+
+          const props = feature.properties;
+
+          return {
+            stroke: 1,
+            color: 'gray',
+            weight: 1,
+            fillColor: getColor(props.COUNT),
+            fillOpacity: 0.75
+          };
+
+        },
+
+        // for each feature...
+        onEachFeature: function(feature, layer) {
+
+          // place holder for image content
+          let imgContent;
+
+          // if the image link is present, add it to the image content
+          if (layer.feature.properties.IMGLNK != " ") {
+            imgContent = '<br><img src="' + layer.feature.properties.IMGLNK + '" width="200"/>';
+          } else {
+            imgContent = '';
+          }
+
+          // define and bind popup to layer
+          layer.bindPopup('<b>' + layer.feature.properties.NAME + ', ' + layer.feature.properties.START_YR + '</b><hr><b>' +
+          layer.feature.properties.PROGRAM + '</b><br>' + layer.feature.properties.GENRE + imgContent, {
+            maxWidth: 200
+          });
+
+          // change the layer style on mouseover
+          layer.on("mouseover", function(e) {
+            this.setStyle({
+              fillOpacity: 1.0
+            });
+          });
+          // use existing option to reset the styles on mouseout
+          layer.on("mouseout", function(e) {
+            this.setStyle({
+              fillOpacity: 0.75
+            });
+          });
+
+        }
+
+      }).addTo(map);
+
+      // define the value in the slider when the map loads
+      let currentYear = $('.slider').val();
+
+      sequenceUI(escritorasLayer); // calls the time slider and sends the layer to it
+      createTemporalLegend(currentYear); // calls the createTemporalLegend function
+      updateLayer(escritorasLayer, currentYear); // updates the layer according to the slider year upon loading
+
+    };
+
+    // call the UI slider with a function called "sequenceUI"
+    function sequenceUI(escritorasLayer) { // feed it the escritorasLayer
+
+      // use the jQuery ajax method to get the slider element
+      $('.slider')
+        .on('input change', function() { // when the input changes...
+          let currentYear = $(this).val(); // identify the year selected with "currentYear"
+          createTemporalLegend(currentYear); // call the createTemporalLegend function
+          updateLayer(escritorasLayer, currentYear); // updates the layer according to the slider year upon change
+        });
+
+    }; // End sequenceUI function
+
+    // Add a temporal legend in sync with the UI slider
+    function createTemporalLegend(currentYear) { // feed it the selected year
+
+      $('#temporal span').html("Year: " + currentYear); // change grade value to that currently selected by UI slider
+
+    }; // End createTemporalLegend function
+
+    // Define updateLayer function and feed it the data and the user-selected year
+    function updateLayer(escritorasLayer, currentYear) {
+
+      // access each layer in the data
+      escritorasLayer.eachLayer(function(layer) {
+
+        // define the layer start year
+        let sYear = layer.feature.properties.START_YR;
+        // define the layer end year
+        let eYear = layer.feature.properties.END_YR;
+
+        // use conditional logic to test if the time slider year is between the layer start and end years
+        if (sYear <= currentYear && currentYear <= eYear) {
+          // if there is a match, add the layer to the map
+          layer.addTo(map);
+        } else {
+          // otherwise, remove the layer from the map
+          map.removeLayer(layer);
+        };
+
+      });
+
+    }; // End updateFires function
+
+  </script>
+</body>
+
+</html>
